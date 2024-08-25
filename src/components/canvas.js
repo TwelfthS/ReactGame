@@ -4,7 +4,7 @@ const spellTimeout = 20
 const radius = 20
 const spellRadius = 5
 
-function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpeed, playerTwoFireSpeed}) {
+function Canvas({width, height, playerOneSettings, playerTwoSettings}) {
     const canvasRef = useRef(null)
     const mousePos = useRef({ x: 0, y: 0 })
 
@@ -13,25 +13,18 @@ function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpe
     const [frame, setFrame] = useState(0)
 
     const [spells, setSpells] = useState([])
-    const [spellOneColor, setSpellOneColor] = useState('black')
-    const [spellTwoColor, setSpellTwoColor] = useState('black')
 
-    const [playerOne, setPlayerOne] = useState({ x: width / 10, y: height / 2, dir: -1, speed: playerOneSpeed, spellColor: 'black', spellTimeout: spellTimeout - playerOneFireSpeed, fireSpeed: playerOneFireSpeed})
+    const [playerOne, setPlayerOne] = useState({ x: width / 10, y: height / 2, dir: -1, spellTimeout: spellTimeout - playerOneSettings.fireSpeed})
 
-    const [playerTwo, setPlayerTwo] = useState({ x: width - width / 10, y: height / 2, dir: -1, speed: playerTwoSpeed, spellColor: 'black', spellTimeout: spellTimeout - playerTwoFireSpeed, fireSpeed: playerTwoFireSpeed})
+    const [playerTwo, setPlayerTwo] = useState({ x: width - width / 10, y: height / 2, dir: -1, spellTimeout: spellTimeout - playerTwoSettings.fireSpeed})
 
     useEffect(() => {
-        setInterval(() => {
+        const intervalId = setInterval(() => {
             setFrame((frame) => frame > 100 ? 0 : frame + 1)
         }, 50)
 
-        const canvas = canvasRef.current
-        const context = canvas.getContext('2d')
-        context.strokeRect(0, 0, width, height)
-        draw(context)
+        return () => clearInterval(intervalId)
     }, [])
-
-    // console.log(frame)
 
     const generateSpell = (source, spells, color) => {
         const spell = {
@@ -47,15 +40,13 @@ function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpe
 
     const checkHit = (spells) => {
         for (let i = 0; i < spells.length; i++) {
-            if (spells[i].caster === 1 && collisionCheck({x: playerTwo.x, y: playerTwo.y}, spells[i])) {
+            if (spells[i].caster === 1 && collisionCheck(playerTwo, spells[i])) {
                 score.current.one = score.current.one + 1
                 spells.splice(i, 1)
-                // i--
             }
-            if (spells[i].caster === 2 && collisionCheck({x: playerOne.x, y: playerOne.y}, spells[i])) {
+            if (spells[i].caster === 2 && collisionCheck(playerOne, spells[i])) {
                 score.current.two = score.current.two + 1
                 spells.splice(i, 1)
-                // i--
             }
         }
         return spells
@@ -92,10 +83,10 @@ function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpe
         } else if (player.y + radius >= height) {
             player.dir = -1
         }
-        if (player.y + radius === mousePos.current.y && mousePos.current.x > player.x - radius && mousePos.current.x < player.x + radius) {
+        if (player.y + radius >= mousePos.current.y && player.y + radius <= mousePos.current.y + 10 && mousePos.current.x > player.x - radius && mousePos.current.x < player.x + radius) {
             player.dir = -1
         }
-        if (player.y - radius === mousePos.current.y && mousePos.current.x > player.x - radius && mousePos.current.x < player.x + radius) {
+        if (player.y - radius >= mousePos.current.y && player.y - radius <= mousePos.current.y + 10 && mousePos.current.x > player.x - radius && mousePos.current.x < player.x + radius) {
             player.dir = 1
         }
     }
@@ -128,35 +119,33 @@ function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpe
 
         const playerOneNext = {...playerOne}
         playerOneNext.spellTimeout -= 1
-        playerOneNext.speed = playerOneSpeed
-        playerOneNext.fireSpeed = playerOneFireSpeed
-        playerOneNext.y = playerOneNext.y + playerOneNext.dir * playerOneNext.speed
+        playerOneNext.y = playerOneNext.y + playerOneNext.dir * playerOneSettings.speed
 
         const playerTwoNext = {...playerTwo}
         playerTwoNext.spellTimeout -= 1
-        playerTwoNext.speed = playerTwoSpeed
-        playerTwoNext.fireSpeed = playerTwoFireSpeed
-        playerTwoNext.y = playerTwoNext.y + playerTwoNext.dir * playerTwoNext.speed
+        playerTwoNext.y = playerTwoNext.y + playerTwoNext.dir * playerTwoSettings.speed
 
         checkDir(playerOneNext)
         checkDir(playerTwoNext)
 
         let tempSpells = [...spells]
+
         if (playerOneNext.spellTimeout <= 0) {
-            tempSpells = generateSpell({x: playerOne.x, y: playerOne.y, dir: 1, player: 1}, tempSpells, spellOneColor)
-            playerOneNext.spellTimeout = spellTimeout - playerOneFireSpeed
+            tempSpells = generateSpell({x: playerOne.x, y: playerOne.y, dir: 1, player: 1}, tempSpells, playerOneSettings.spellColor)
+            playerOneNext.spellTimeout = spellTimeout - playerOneSettings.fireSpeed
         }
         if (playerTwoNext.spellTimeout <= 0) {
-            tempSpells = generateSpell({x: playerTwo.x, y: playerTwo.y, dir: -1, player: 2}, tempSpells, spellTwoColor)
-            playerTwoNext.spellTimeout = spellTimeout - playerTwoFireSpeed
+            tempSpells = generateSpell({x: playerTwo.x, y: playerTwo.y, dir: -1, player: 2}, tempSpells, playerTwoSettings.spellColor)
+            playerTwoNext.spellTimeout = spellTimeout - playerTwoSettings.fireSpeed
         }
 
         tempSpells = checkHit(tempSpells)
         
         for (let i = 0; i < tempSpells.length; i++) {
-            tempSpells[i].x = tempSpells[i].x + tempSpells[i].dir
+            tempSpells[i].x = tempSpells[i].x + tempSpells[i].dir * 2
             if (tempSpells[i].x > width || tempSpells[i].x <= 0) {
                 tempSpells.splice(i, 1)
+                i--
             }
         }
         setSpells([...tempSpells])
@@ -166,24 +155,9 @@ function Canvas({width, height, playerOneSpeed, playerTwoSpeed, playerOneFireSpe
     }, [frame])
 
 
-    const changeColor = (color, player) => {
-        player === 1 ? setSpellOneColor(color) : setSpellTwoColor(color)
-    }
-
-
     return <div>
-        <p>{score.current.one} : {score.current.two}</p>
-        <canvas ref={canvasRef} width={width} height={height} onMouseMove={getMousePosition} onClick={handleClick} />
-        <div id="menuOne" className='hidden'>
-            <button onClick={() => changeColor('red', 1)}>Red</button>
-            <button onClick={() => changeColor('blue', 1)}>Blue</button>
-            <button onClick={() => changeColor('black', 1)}>Black</button>
-        </div>
-        <div id="menuTwo" className='hidden'>
-            <button onClick={() => changeColor('red', 2)}>Red</button>
-            <button onClick={() => changeColor('blue', 2)}>Blue</button>
-            <button onClick={() => changeColor('black', 2)}>Black</button>
-        </div>
+            <h1 className='text-center'>{score.current.one} : {score.current.two}</h1>
+            <canvas ref={canvasRef} width={width} height={height} onMouseMove={getMousePosition} onClick={handleClick} />
         </div>
 }
 

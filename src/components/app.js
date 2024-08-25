@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Canvas from './canvas'
+import Menu from './menu'
 
 function App() {
 
@@ -8,6 +9,9 @@ function App() {
 
     const [playerOneFireSpeed, setPlayerOneFireSpeed] = useState(1)
     const [playerTwoFireSpeed, setPlayerTwoFireSpeed] = useState(1)
+
+    const [spellColorOne, setSpellColorOne] = useState('black')
+    const [spellColorTwo, setSpellColorTwo] = useState('black')
 
     const changeValue = (e, valueToChange) => {
         switch (valueToChange) {
@@ -27,15 +31,33 @@ function App() {
                 break
         }
     }
+
+    const changeColor = (color, player) => {
+        player === 1 ? setSpellColorOne(color) : setSpellColorTwo(color)
+    }
+
+
     return (
-        <>
-            <h1 className="h1">Приложение на React</h1>
-            <Canvas width={300} height={300} playerOneSpeed={playerOneSpeed} playerTwoSpeed={playerTwoSpeed} playerOneFireSpeed={playerOneFireSpeed} playerTwoFireSpeed={playerTwoFireSpeed} />
-            <input type="range" min="1" max="10" value={playerOneSpeed} onChange={(e) => changeValue(e, "playerOneSpeed")}></input>
-            <input type="range" min="1" max="10" value={playerTwoSpeed} onChange={(e) => changeValue(e, "playerTwoSpeed")}></input>
-            <input type="range" min="1" max="15" value={playerOneFireSpeed} onChange={(e) => changeValue(e, "playerOneFireSpeed")}></input>
-            <input type="range" min="1" max="15" value={playerTwoFireSpeed} onChange={(e) => changeValue(e, "playerTwoFireSpeed")}></input>
-        </>
+        <div className='main-flex'>
+            <div className='ranges-div'>
+                <input name='oneSpeed' type='range' min='1' max='10' value={playerOneSpeed} onChange={(e) => changeValue(e, 'playerOneSpeed')}></input>
+                <label htmlFor='oneSpeed'>Скорость движения</label>
+                <input name='oneFireSpeed' type='range' min='1' max='15' value={playerOneFireSpeed} onChange={(e) => changeValue(e, 'playerOneFireSpeed')}></input>
+                <label htmlFor='oneFireSpeed'>Скорость атаки</label>
+                <Menu menuId='menuOne' playerId={1} changeColor={changeColor} />
+            </div>
+
+            <Canvas width={500} height={300} playerOneSettings={{speed: playerOneSpeed, fireSpeed: playerOneFireSpeed, spellColor: spellColorOne}} playerTwoSettings={{speed: playerTwoSpeed, fireSpeed: playerTwoFireSpeed, spellColor: spellColorTwo}} />
+            
+            <div className='ranges-div'>
+                <input name='twoSpeed' type='range' min='1' max='10' value={playerTwoSpeed} onChange={(e) => changeValue(e, 'playerTwoSpeed')}></input>
+                <label htmlFor='twoSpeed'>Скорость движения</label>
+                <input name='twoFireSpeed' type='range' min='1' max='15' value={playerTwoFireSpeed} onChange={(e) => changeValue(e, 'playerTwoFireSpeed')}></input>   
+                <label htmlFor='twoFireSpeed'>Скорость атаки</label>
+                <Menu menuId='menuTwo' playerId={2} changeColor={changeColor} />
+            </div>
+
+        </div>
     )
 }
 
